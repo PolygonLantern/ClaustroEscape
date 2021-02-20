@@ -1,16 +1,25 @@
 import pygame as pg
-from pygame.locals import *
 
 pg.init()
 clock = pg.time.Clock()
-
+''''
+===============================================================================================================
+    Game Legend:
+        (Tile Numbers - What they represent)
+        0 - Ground/Gravel. The floor of the level
+        1 - Shifting Walls
+        2 - Obstacles
+        4 - Player
+===============================================================================================================
+'''
 gameWindowWidth: int = 1440
 hudWidth: int = 440
 
 windowHeight = 1000
 hudHeight = 1000
-tileSize = 200
+tileSize = 50
 worldData = []
+wallData = []
 
 mainGameSurface = pg.display.set_mode((gameWindowWidth, windowHeight))
 pg.display.set_caption("ClaustroEscape")
@@ -70,7 +79,7 @@ screen
 def InitialiseWalls(width=gameWindowWidth, height=windowHeight):
     gridDiffX = width // tileSize
     gridDiffY = height // tileSize
-    worldTiles = []
+    wallTiles = []
     for y in range(gridDiffY):
         xTiles = []
         for x in range(gridDiffX):
@@ -81,6 +90,21 @@ def InitialiseWalls(width=gameWindowWidth, height=windowHeight):
                     xTiles.append(1)
                 else:
                     xTiles.append(0)
+
+        wallTiles.insert(y, xTiles)
+
+    return wallTiles
+
+
+def InitialiseWorld(width=gameWindowWidth, height=windowHeight):
+    gridDiffX = width // tileSize
+    gridDiffY = height // tileSize
+    worldTiles = []
+
+    for y in range(gridDiffY):
+        xTiles = []
+        for x in range(gridDiffX):
+            xTiles.append(0)
         worldTiles.insert(y, xTiles)
 
     return worldTiles
@@ -126,9 +150,14 @@ def ShrinkWalls(width, height):
 
 
 def RedrawLoop():
-    mainGameSurface.blit(hudSurface, (hudDifference, 0))
-    mainGameSurface.blit(wallsSurface, (0, 0))
+    world = World(worldData)
+    walls = World(wallData)
 
+    world.DrawWorld()
+    walls.DrawWorld()
+
+    mainGameSurface.blit(hudSurface, (gameWindowSize, 0))
+    mainGameSurface.blit(wallsSurface, (0, 0))
 
 ''''
 ===============================================================================================================
@@ -142,10 +171,48 @@ def RedrawLoop():
 ===============================================================================================================
 '''
 
-''''
-    Class that would create the walls that is displayed on the player's screen. This class will contain all the tiles 
-    that will be used for the game as a number that will be used whenever the walls is drawn
-'''
+
+class World:
+
+    def __init__(self, _worldData):
+        self.tileList = []
+
+        # load sprites
+        floorSprite = pg.image.load('Sprites/Tiles/FloorTile.png')
+        spiralFloorSprite = pg.image.load('Sprites/Tiles/FloorTile1.png')
+
+        rowCount = 0
+        for row in _worldData:
+            columnCount = 0
+            for tile in row:
+                # section for sprites to be drawn
+                if tile == 0:
+                    tile = DrawSprite(floorSprite, tileSize, columnCount, rowCount)
+                    self.tileList.append(tile)
+
+                if tile == 1:
+                    tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
+                    self.tileList.append(tile)
+
+                # end of section
+                columnCount += 1
+            rowCount += 1
+
+    def DrawWorld(self):
+        for tile in self.tileList:
+            wallsSurface.blit(tile[0], tile[1])
+
+
+class Obstacle:
+    def __init__(self, obstacleWidth, obstacleHeight):
+        self.width = obstacleWidth
+        self.height = obstacleHeight
+
+    def GetWidth(self):
+        return self.width
+
+    def GetHeight(self):
+        return self.height
 
 
 class Player:
@@ -172,34 +239,19 @@ class Player:
         return self.tileNumber
 
 
-class CreateWalls:
-    def __init__(self, _worldData):
-        self.tileList = []
-        
-        # load sprites
-        floorSprite = pg.image.load('Sprites/Tiles/FloorTile.png')
-        spiralFloorSprite = pg.image.load('Sprites/Tiles/FloorTile1.png')
+class LevelObstacles(Obstacle):
+    pass
 
-        rowCount = 0
-        for row in _worldData:
-            columnCount = 0
-            for tile in row:
-                # section for sprites to be drawn
-                if tile == 1:
-                    tile = DrawSprite(floorSprite, tileSize, columnCount, rowCount)
-                    self.tileList.append(tile)
 
-                if tile == 2:
-                    tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
-                    self.tileList.append(tile)
-                    
-                # end of section
-                columnCount += 1
-            rowCount += 1
+''''
+    Class that would create the walls that is displayed on the player's screen. This class will contain all the tiles 
+    that will be used for the game as a number that will be used whenever the walls is drawn
+'''
 
-    def DrawShiftingWalls(self):
-        for tile in self.tileList:
-            wallsSurface.blit(tile[0], tile[1])
+
+class CreateWalls(Obstacle):
+    def __init__(self, _worldData, obstacleWidth, obstacleHeight):
+        super().__init__(obstacleWidth, obstacleHeight)
 
 
 ''''
@@ -214,7 +266,11 @@ class CreateWalls:
 ===============================================================================================================
 '''
 
-worldData = InitialiseWalls()
+worldData = InitialiseWorld()
+wallData = InitialiseWalls()
+
+print(worldData)
+print(wallData)
 isGameRunning = True
 while isGameRunning:
 
@@ -224,13 +280,11 @@ while isGameRunning:
 
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_LEFT:
-                walls = CreateWalls(worldData)
 
                 gameWindowWidth -= tileSize
                 windowHeight -= tileSize
 
-                walls.DrawShiftingWalls()
-                worldData = ShrinkWalls(gameWindowWidth, windowHeight)
+                wallData = ShrinkWalls(gameWindowWidth, windowHeight)
 
     # set a frame rate
     clock.tick(60)
