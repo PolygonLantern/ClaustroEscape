@@ -2,33 +2,34 @@ import pygame as pg
 from pygame.locals import *
 
 pg.init()
+clock = pg.time.Clock()
 
 gameWindowWidth: int = 1440
 hudWidth: int = 440
 
 windowHeight = 1000
 hudHeight = 1000
-tileSize = 50
+tileSize = 200
 worldData = []
 
-window = pg.display.set_mode((gameWindowWidth, windowHeight))
+mainGameSurface = pg.display.set_mode((gameWindowWidth, windowHeight))
 pg.display.set_caption("ClaustroEscape")
-testColour = (0, 255 , 0)
 
+hudColour = (0, 255, 0)
 
-# this variable makes no sense
-hudDifference = gameWindowWidth - hudWidth
+# this variable is the playable size of the field. This way we can have some screen space for some HUD
+gameWindowSize = gameWindowWidth - hudWidth
+gameWindowWidth = gameWindowSize
 
-gameWindowWidth = hudDifference
-# Take the pixels for the hud out of the gameWindow's width
 ''''
 ===============================================================================================================
                                          Surface definition section 
 ===============================================================================================================
 '''
 hudSurface = pg.Surface([hudWidth, hudHeight])
-hudSurface.fill(testColour)
+hudSurface.fill(hudColour)
 
+wallsSurface = pg.Surface([gameWindowWidth, windowHeight])
 
 ''''
 ===============================================================================================================
@@ -46,8 +47,8 @@ hudSurface.fill(testColour)
 # code from https://github.com/russs123/Platformer/blob/master/Part_1-Create_World/platformer_tut1.py
 def draw_grid():
     for line in range(0, 20):
-        pg.draw.line(window, (255, 255, 255), (0, line * tileSize), (gameWindowWidth, line * tileSize))
-        pg.draw.line(window, (255, 255, 255), (line * tileSize, 0), (line * tileSize, windowHeight))
+        pg.draw.line(mainGameSurface, (255, 255, 255), (0, line * tileSize), (gameWindowWidth, line * tileSize))
+        pg.draw.line(mainGameSurface, (255, 255, 255), (line * tileSize, 0), (line * tileSize, windowHeight))
 
 
 def DrawSprite(sprite, _tileSize, colCount, rowCount):
@@ -120,6 +121,16 @@ def ShrinkWalls(width, height):
 
 
 ''''
+    Function that will keep track of the things that we need to draw on the screen.
+'''
+
+
+def RedrawLoop():
+    mainGameSurface.blit(hudSurface, (hudDifference, 0))
+    mainGameSurface.blit(wallsSurface, (0, 0))
+
+
+''''
 ===============================================================================================================
                                     End of Function definition section
 ===============================================================================================================
@@ -132,15 +143,39 @@ def ShrinkWalls(width, height):
 '''
 
 ''''
-    Class that would create the world that is displayed on the player's screen. This class will contain all the tiles 
-    that will be used for the game as a number that will be used whenever the world is drawn
+    Class that would create the walls that is displayed on the player's screen. This class will contain all the tiles 
+    that will be used for the game as a number that will be used whenever the walls is drawn
 '''
 
 
-class CreateWorld:
+class Player:
+    # load player sprites
+    playerSprite = pg.image.load('Sprites/Player/Player_Right.png')
+
+    def __init__(self, colCount, rowCount, width, height):
+        self.rowPos = rowCount
+        self.colPos = colCount
+        self.width = width
+        self.height = height
+        self.tileNumber = 4
+
+    def DrawPlayerTile(self):
+        return DrawSprite(self.playerSprite, tileSize, self.colPos, self.rowPos)
+
+    def GetPlayerX(self):
+        return self.rowPos
+
+    def GetPlayerY(self):
+        return self.colPos
+
+    def GetPlayerTileNumber(self):
+        return self.tileNumber
+
+
+class CreateWalls:
     def __init__(self, _worldData):
         self.tileList = []
-
+        
         # load sprites
         floorSprite = pg.image.load('Sprites/Tiles/FloorTile.png')
         spiralFloorSprite = pg.image.load('Sprites/Tiles/FloorTile1.png')
@@ -157,18 +192,14 @@ class CreateWorld:
                 if tile == 2:
                     tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
+                    
                 # end of section
                 columnCount += 1
             rowCount += 1
 
-    def DrawWorld(self):
+    def DrawShiftingWalls(self):
         for tile in self.tileList:
-            window.blit(tile[0], tile[1])
-
-
-class Player:
-    def __init__(self, x):
-        self.x = x
+            wallsSurface.blit(tile[0], tile[1])
 
 
 ''''
@@ -177,14 +208,15 @@ class Player:
 ===============================================================================================================
 '''
 
+''''
+===============================================================================================================
+                                            Start of Main Loop
+===============================================================================================================
+'''
+
 worldData = InitialiseWalls()
-
-player = Player(5)
-
 isGameRunning = True
 while isGameRunning:
-
-    window.blit(hudSurface, (hudDifference, 0))
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -192,13 +224,24 @@ while isGameRunning:
 
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_LEFT:
-                world = CreateWorld(worldData)
+                walls = CreateWalls(worldData)
 
                 gameWindowWidth -= tileSize
                 windowHeight -= tileSize
-                world.DrawWorld()
+
+                walls.DrawShiftingWalls()
                 worldData = ShrinkWalls(gameWindowWidth, windowHeight)
+
+    # set a frame rate
+    clock.tick(60)
+
+    RedrawLoop()
 
     pg.display.update()
 
 pg.quit()
+''''
+===============================================================================================================
+                                            End of Main Loop
+===============================================================================================================
+'''
