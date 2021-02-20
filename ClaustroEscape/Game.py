@@ -1,5 +1,5 @@
 import pygame as pg
-
+import random
 pg.init()
 clock = pg.time.Clock()
 ''''
@@ -7,7 +7,7 @@ clock = pg.time.Clock()
     Game Legend:
         (Tile Numbers - What they represent)
         0 - Ground/Gravel. The floor of the level
-        1 - Shifting Walls
+        3 - Shifting Walls
         2 - Obstacles
         4 - Player
 ===============================================================================================================
@@ -84,10 +84,10 @@ def InitialiseWalls(width=gameWindowWidth, height=windowHeight):
         xTiles = []
         for x in range(gridDiffX):
             if y == 0 or y == gridDiffY - 1:
-                xTiles.append(1)
+                xTiles.append(3)
             else:
                 if x == 0 or x == gridDiffX - 1:
-                    xTiles.append(1)
+                    xTiles.append(3)
                 else:
                     xTiles.append(0)
 
@@ -104,7 +104,7 @@ def InitialiseWorld(width=gameWindowWidth, height=windowHeight):
     for y in range(gridDiffY):
         xTiles = []
         for x in range(gridDiffX):
-            xTiles.append(0)
+            xTiles.append(random.randint(1, 2))
         worldTiles.insert(y, xTiles)
 
     return worldTiles
@@ -133,10 +133,10 @@ def ShrinkWalls(width, height):
             endTiles = []
             for x in range(len(originalState)):
                 if y == stateDiff or y == len(originalState) - stateDiff - 1:
-                    endTiles.append(1)
+                    endTiles.append(3)
                 else:
                     if x == stateDiff or x == len(originalState) - stateDiff - 1:
-                        endTiles.append(1)
+                        endTiles.append(3)
                     else:
                         endTiles.append(0)
             newTiles.insert(y, endTiles)
@@ -180,18 +180,23 @@ class World:
         # load sprites
         floorSprite = pg.image.load('Sprites/Tiles/FloorTile.png')
         spiralFloorSprite = pg.image.load('Sprites/Tiles/FloorTile1.png')
+        testObstacle = pg.image.load('Sprites/Tiles/TestObstacle.png')
 
         rowCount = 0
         for row in _worldData:
             columnCount = 0
             for tile in row:
                 # section for sprites to be drawn
-                if tile == 0:
+                if tile == 1:
                     tile = DrawSprite(floorSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
-                if tile == 1:
+                if tile == 3:
                     tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
+                    self.tileList.append(tile)
+
+                if tile == 2:
+                    tile = DrawSprite(testObstacle, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
                 # end of section
@@ -269,8 +274,6 @@ class CreateWalls(Obstacle):
 worldData = InitialiseWorld()
 wallData = InitialiseWalls()
 
-print(worldData)
-print(wallData)
 isGameRunning = True
 while isGameRunning:
 
@@ -285,6 +288,9 @@ while isGameRunning:
                 windowHeight -= tileSize
 
                 wallData = ShrinkWalls(gameWindowWidth, windowHeight)
+
+                print(worldData)
+                print(wallData)
 
     # set a frame rate
     clock.tick(60)
