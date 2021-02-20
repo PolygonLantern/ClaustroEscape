@@ -19,7 +19,7 @@ hudWidth: int = 440
 
 windowHeight = 1000
 hudHeight = 1000
-tileSize = 100
+tileSize = 50
 worldData = []
 wallData = []
 
@@ -79,8 +79,8 @@ screen
 
 
 def InitialiseWalls(width=gameWindowWidth, height=windowHeight):
-    gridDiffX = width // tileSize
-    gridDiffY = height // tileSize
+    gridDiffX = (width + tileSize) // tileSize
+    gridDiffY = (height + tileSize) // tileSize
     wallTiles = []
     for y in range(gridDiffY):
         xTiles = []
@@ -91,7 +91,7 @@ def InitialiseWalls(width=gameWindowWidth, height=windowHeight):
                 if x == 0 or x == gridDiffX - 1:
                     xTiles.append(3)
                 else:
-                    xTiles.append(0)
+                    xTiles.append(7)
 
         wallTiles.insert(y, xTiles)
 
@@ -106,7 +106,10 @@ def InitialiseWorld(width=gameWindowWidth, height=windowHeight):
     for y in range(gridDiffY):
         xTiles = []
         for x in range(gridDiffX):
-            xTiles.append(random.randint(1, 2))
+            if x == gridDiffX // 2 and y == gridDiffY // 2:
+                xTiles.append(6)
+            else:
+                xTiles.append(random.randint(0, 1))
         worldTiles.insert(y, xTiles)
 
     return worldTiles
@@ -140,7 +143,7 @@ def ShrinkWalls(width, height):
                     if x == stateDiff or x == len(originalState) - stateDiff - 1:
                         endTiles.append(3)
                     else:
-                        endTiles.append(0)
+                        endTiles.append(7)
             newTiles.insert(y, endTiles)
 
     return newTiles
@@ -184,22 +187,27 @@ class World:
         floorSprite = pg.image.load('Sprites/Tiles/FloorTile.png')
         spiralFloorSprite = pg.image.load('Sprites/Tiles/FloorTile1.png')
         testObstacle = pg.image.load('Sprites/Tiles/TestObstacle.png')
+        testCenterSprite = pg.image.load('Sprites/Tiles/TestCenterSprite.png')
 
         rowCount = 0
         for row in _worldData:
             columnCount = 0
             for tile in row:
                 # section for sprites to be drawn
-                if tile == 1:
+                if tile == 0:
                     tile = DrawSprite(floorSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
-                if tile == 2:
+                if tile == 1:
                     tile = DrawSprite(testObstacle, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
                 if tile == 3:
                     tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
+                    self.tileList.append(tile)
+
+                if tile == 6:
+                    tile = DrawSprite(testCenterSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
                 # end of section
