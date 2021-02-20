@@ -1,5 +1,7 @@
 import pygame as pg
 import random
+
+
 pg.init()
 clock = pg.time.Clock()
 ''''
@@ -17,7 +19,7 @@ hudWidth: int = 440
 
 windowHeight = 1000
 hudHeight = 1000
-tileSize = 50
+tileSize = 100
 worldData = []
 wallData = []
 
@@ -159,6 +161,7 @@ def RedrawLoop():
     mainGameSurface.blit(hudSurface, (gameWindowSize, 0))
     mainGameSurface.blit(wallsSurface, (0, 0))
 
+
 ''''
 ===============================================================================================================
                                     End of Function definition section
@@ -191,12 +194,12 @@ class World:
                     tile = DrawSprite(floorSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
-                if tile == 3:
-                    tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
-                    self.tileList.append(tile)
-
                 if tile == 2:
                     tile = DrawSprite(testObstacle, tileSize, columnCount, rowCount)
+                    self.tileList.append(tile)
+
+                if tile == 3:
+                    tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
                 # end of section
@@ -283,7 +286,6 @@ while isGameRunning:
 
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_LEFT:
-
                 gameWindowWidth -= tileSize
                 windowHeight -= tileSize
 
