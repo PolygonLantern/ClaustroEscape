@@ -1,52 +1,15 @@
 import pygame as pg
 import random
-
+import AStar
+import Player
 
 pg.init()
 clock = pg.time.Clock()
-''''
-===============================================================================================================
-    Game Legend:
-        (Tile Numbers - What they represent)
-        0 - Ground/Gravel. The floor of the level
-        3 - Shifting Walls
-        2 - Obstacles
-        4 - Player
-===============================================================================================================
-'''
+
 gameWindowWidth: int = 1440
 hudWidth: int = 440
-
 windowHeight = 1000
 hudHeight = 1000
-tileSize = 50
-worldData = []
-wallData = []
-
-mainGameSurface = pg.display.set_mode((gameWindowWidth, windowHeight))
-pg.display.set_caption("ClaustroEscape")
-
-hudColour = (0, 255, 0)
-
-# this variable is the playable size of the field. This way we can have some screen space for some HUD
-gameWindowSize = gameWindowWidth - hudWidth
-gameWindowWidth = gameWindowSize
-
-''''
-===============================================================================================================
-                                         Surface definition section 
-===============================================================================================================
-'''
-hudSurface = pg.Surface([hudWidth, hudHeight])
-hudSurface.fill(hudColour)
-
-wallsSurface = pg.Surface([gameWindowWidth, windowHeight])
-
-''''
-===============================================================================================================
-                                     End of surface definition section 
-===============================================================================================================
-'''
 
 ''''
 ===============================================================================================================
@@ -107,7 +70,7 @@ def InitialiseWorld(width=gameWindowWidth, height=windowHeight):
         xTiles = []
         for x in range(gridDiffX):
             if x == gridDiffX // 2 and y == gridDiffY // 2:
-                xTiles.append(6)
+                xTiles.append(0)
             else:
                 xTiles.append(random.randint(0, 1))
         worldTiles.insert(y, xTiles)
@@ -158,6 +121,8 @@ def RedrawLoop():
     world = World(worldData)
     walls = World(wallData)
 
+    player.DrawPlayerTile()
+
     world.DrawWorld()
     walls.DrawWorld()
 
@@ -165,9 +130,96 @@ def RedrawLoop():
     mainGameSurface.blit(wallsSurface, (0, 0))
 
 
+def CheckForValidStartPoint(_worldData):
+    possibleStarts = []
+
+    for x in range(0, len(_worldData[1])):
+        if _worldData[1][x] == 0:
+            possibleStarts.append(x)
+
+    def SetPlayerStartingPos():
+        X = 0
+        _hasAWay = False
+        for i in possibleStarts:
+            startPoint = [1, i]
+            endPoint = [10, 10]
+            cost = 1
+            path = AStar.search(_worldData, cost, startPoint, endPoint)
+
+            if path is not None:
+                X = i
+                _hasAWay = True
+                break
+
+        # print(path)
+        return X, 1, _hasAWay
+
+    _playerX, _playerY, hasAWay = SetPlayerStartingPos()
+
+    # print(playerY, playerX)
+
+    return _playerX, _playerY, hasAWay
+
+
 ''''
 ===============================================================================================================
                                     End of Function definition section
+===============================================================================================================
+'''
+
+''''
+===============================================================================================================
+    Game Legend:
+        (Tile Numbers - What they represent)
+        0 - Ground/Gravel. The floor of the level
+        3 - Shifting Walls
+        2 - Obstacles
+        4 - Player
+===============================================================================================================
+'''
+''''
+===============================================================================================================
+                                         Variables definition section 
+===============================================================================================================
+'''
+
+tileSize = 50
+worldData = InitialiseWorld()
+wallData = InitialiseWalls()
+
+playerX = CheckForValidStartPoint(worldData)[0]
+playerY = CheckForValidStartPoint(worldData)[1]
+
+player = Player.Player((playerX, playerY), (tileSize, tileSize))
+mainGameSurface = pg.display.set_mode((gameWindowWidth, windowHeight))
+pg.display.set_caption("ClaustroEscape")
+
+hudColour = (0, 255, 0)
+
+# this variable is the playable size of the field. This way we can have some screen space for some HUD
+gameWindowSize = gameWindowWidth - hudWidth
+gameWindowWidth = gameWindowSize
+''''
+===============================================================================================================
+                                 End of variables definition section 
+===============================================================================================================
+'''
+
+''''
+===============================================================================================================
+                                         Surface definition section 
+===============================================================================================================
+'''
+hudSurface = pg.Surface([hudWidth, hudHeight])
+hudSurface.fill(hudColour)
+
+wallsSurface = pg.Surface([gameWindowWidth, windowHeight])
+
+playerSurface = pg.Surface([gameWindowWidth, windowHeight])
+
+''''
+===============================================================================================================
+                                     End of surface definition section 
 ===============================================================================================================
 '''
 
@@ -206,7 +258,7 @@ class World:
                     tile = DrawSprite(spiralFloorSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
-                if tile == 6:
+                if tile == -1:
                     tile = DrawSprite(testCenterSprite, tileSize, columnCount, rowCount)
                     self.tileList.append(tile)
 
@@ -229,30 +281,6 @@ class Obstacle:
 
     def GetHeight(self):
         return self.height
-
-
-class Player:
-    # load player sprites
-    playerSprite = pg.image.load('Sprites/Player/Player_Right.png')
-
-    def __init__(self, colCount, rowCount, width, height):
-        self.rowPos = rowCount
-        self.colPos = colCount
-        self.width = width
-        self.height = height
-        self.tileNumber = 4
-
-    def DrawPlayerTile(self):
-        return DrawSprite(self.playerSprite, tileSize, self.colPos, self.rowPos)
-
-    def GetPlayerX(self):
-        return self.rowPos
-
-    def GetPlayerY(self):
-        return self.colPos
-
-    def GetPlayerTileNumber(self):
-        return self.tileNumber
 
 
 class LevelObstacles(Obstacle):
@@ -278,12 +306,35 @@ class CreateWalls(Obstacle):
 
 ''''
 ===============================================================================================================
-                                            Start of Main Loop
+                                            Start of World Initialisation
+===============================================================================================================
+'''
+lookingForValidStartPoint = True
+
+while lookingForValidStartPoint:
+
+    if CheckForValidStartPoint(worldData)[2] is False:
+        worldData = InitialiseWorld()
+        wallData = InitialiseWalls()
+        playerX = CheckForValidStartPoint(worldData)[0]
+        playerY = CheckForValidStartPoint(worldData)[1]
+
+    else:
+        lookingForValidStartPoint = False
+
+worldData[1][playerX] = player.GetPlayerTileNumber()
+
+''''
+===============================================================================================================
+                                            End of World Initialisation
 ===============================================================================================================
 '''
 
-worldData = InitialiseWorld()
-wallData = InitialiseWalls()
+''''
+===============================================================================================================
+                                            Start of Main Loop
+===============================================================================================================
+'''
 
 isGameRunning = True
 while isGameRunning:
@@ -298,9 +349,6 @@ while isGameRunning:
                 windowHeight -= tileSize
 
                 wallData = ShrinkWalls(gameWindowWidth, windowHeight)
-
-                print(worldData)
-                print(wallData)
 
     # set a frame rate
     clock.tick(60)
