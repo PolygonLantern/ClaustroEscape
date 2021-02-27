@@ -7,9 +7,7 @@ pg.init()
 clock = pg.time.Clock()
 
 gameWindowWidth: int = 1440
-hudWidth: int = 440
 windowHeight = 1000
-hudHeight = 1000
 
 ''''
 ===============================================================================================================
@@ -121,12 +119,11 @@ def RedrawLoop():
     world = World(worldData)
     walls = World(wallData)
 
-    player.DrawPlayerTile()
-
+    player.DrawWorld(playerSurface)
     world.DrawWorld()
     walls.DrawWorld()
 
-    mainGameSurface.blit(hudSurface, (gameWindowSize, 0))
+    mainGameSurface.blit(playerSurface, (0, 0))
     mainGameSurface.blit(wallsSurface, (0, 0))
 
 
@@ -161,6 +158,36 @@ def CheckForValidStartPoint(_worldData):
     return _playerX, _playerY, hasAWay
 
 
+def MovePlayerLeft(_worldData):
+    playerIndex = _worldData[2].index(10)
+    tempIndex = playerIndex
+    if _worldData[2][playerIndex - 1] != 1:
+        print("moving to the left")
+        _worldData[2][tempIndex] = 0
+        _worldData[2][playerIndex - 1] = 10
+    else:
+        print("I cant move there")
+
+    print(f"Move to the left index{playerIndex}")
+    print(_worldData)
+    return _worldData
+
+
+def MovePlayerRight(_worldData):
+    playerIndex = _worldData[2].index(10)
+    tempIndex = playerIndex
+    if _worldData[2][playerIndex + 1] != 1:
+        print("moving to the right")
+        _worldData[2][tempIndex] = 0
+        _worldData[2][playerIndex + 1] = 10
+    else:
+        print("I cant move there")
+
+    print(f"Move to the right index{playerIndex}")
+    print(_worldData)
+    return _worldData
+
+
 ''''
 ===============================================================================================================
                                     End of Function definition section
@@ -190,15 +217,10 @@ wallData = InitialiseWalls()
 playerX = CheckForValidStartPoint(worldData)[0]
 playerY = CheckForValidStartPoint(worldData)[1]
 
-player = Player.Player((playerX, playerY), (tileSize, tileSize))
 mainGameSurface = pg.display.set_mode((gameWindowWidth, windowHeight))
 pg.display.set_caption("ClaustroEscape")
 
-hudColour = (0, 255, 0)
 
-# this variable is the playable size of the field. This way we can have some screen space for some HUD
-gameWindowSize = gameWindowWidth - hudWidth
-gameWindowWidth = gameWindowSize
 ''''
 ===============================================================================================================
                                  End of variables definition section 
@@ -210,8 +232,6 @@ gameWindowWidth = gameWindowSize
                                          Surface definition section 
 ===============================================================================================================
 '''
-hudSurface = pg.Surface([hudWidth, hudHeight])
-hudSurface.fill(hudColour)
 
 wallsSurface = pg.Surface([gameWindowWidth, windowHeight])
 
@@ -220,6 +240,33 @@ playerSurface = pg.Surface([gameWindowWidth, windowHeight])
 ''''
 ===============================================================================================================
                                      End of surface definition section 
+===============================================================================================================
+'''
+
+''''
+===============================================================================================================
+                                            Start of World Initialisation
+===============================================================================================================
+'''
+lookingForValidStartPoint = True
+
+while lookingForValidStartPoint:
+    ValidStartPoint = CheckForValidStartPoint(worldData)[2]
+    if ValidStartPoint is False:
+        worldData = InitialiseWorld()
+        wallData = InitialiseWalls()
+        playerX = CheckForValidStartPoint(worldData)[0]
+        playerY = CheckForValidStartPoint(worldData)[1]
+
+    else:
+        lookingForValidStartPoint = False
+
+worldData[2][playerX] = 10
+
+player = Player.Player((playerX, playerY), (tileSize, tileSize), worldData)
+''''
+===============================================================================================================
+                                            End of World Initialisation
 ===============================================================================================================
 '''
 
@@ -260,6 +307,10 @@ class World:
 
                 if tile == -1:
                     tile = DrawSprite(testCenterSprite, tileSize, columnCount, rowCount)
+                    self.tileList.append(tile)
+
+                if tile == 10:
+                    tile = player.DrawPlayerTile()
                     self.tileList.append(tile)
 
                 # end of section
@@ -306,35 +357,11 @@ class CreateWalls(Obstacle):
 
 ''''
 ===============================================================================================================
-                                            Start of World Initialisation
-===============================================================================================================
-'''
-lookingForValidStartPoint = True
-
-while lookingForValidStartPoint:
-
-    if CheckForValidStartPoint(worldData)[2] is False:
-        worldData = InitialiseWorld()
-        wallData = InitialiseWalls()
-        playerX = CheckForValidStartPoint(worldData)[0]
-        playerY = CheckForValidStartPoint(worldData)[1]
-
-    else:
-        lookingForValidStartPoint = False
-
-worldData[1][playerX] = player.GetPlayerTileNumber()
-
-''''
-===============================================================================================================
-                                            End of World Initialisation
-===============================================================================================================
-'''
-
-''''
-===============================================================================================================
                                             Start of Main Loop
 ===============================================================================================================
 '''
+print(len(worldData[0]))
+print(wallsSurface.get_width())
 
 isGameRunning = True
 while isGameRunning:
@@ -347,7 +374,13 @@ while isGameRunning:
             if event.key == pg.K_LEFT:
                 gameWindowWidth -= tileSize
                 windowHeight -= tileSize
+                worldData = MovePlayerLeft(worldData)
+                wallData = ShrinkWalls(gameWindowWidth, windowHeight)
 
+            if event.key == pg.K_RIGHT:
+                gameWindowWidth -= tileSize
+                windowHeight -= tileSize
+                worldData = MovePlayerRight(worldData)
                 wallData = ShrinkWalls(gameWindowWidth, windowHeight)
 
     # set a frame rate
